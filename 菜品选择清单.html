@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>家庭菜谱 · 菜品选择清单</title>
+<style>
+  :root{
+    --bg:#f7f5f0; --card:#ffffff; --ink:#2b2620; --sub:#8a8378;
+    --line:#e8e3d9; --accent:#c0392b; --accent-soft:#fbeae7;
+    --green:#27ae60; --green-soft:#e8f6ee; --red:#c0392b;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif; background:var(--bg); color:var(--ink); line-height:1.6;}
+  .wrap{max-width:960px; margin:0 auto; padding:24px 16px 80px;}
+  header{text-align:center; padding:28px 0 8px;}
+  header h1{font-size:26px; letter-spacing:1px;}
+  header h1 .dot{color:var(--accent);}
+  header p{color:var(--sub); font-size:14px; margin-top:6px;}
+  .toolbar{position:sticky; top:0; background:var(--bg); padding:12px 0 10px; z-index:10; border-bottom:1px solid var(--line);}
+  .row{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:8px;}
+  .pill{border:1px solid var(--line); background:var(--card); border-radius:999px; padding:6px 14px; font-size:13px; cursor:pointer; user-select:none; transition:all .15s;}
+  .pill:hover{border-color:var(--accent);}
+  .pill.active{background:var(--accent); border-color:var(--accent); color:#fff;}
+  select, input[type=text]{border:1px solid var(--line); background:var(--card); border-radius:8px; padding:6px 10px; font-size:13px; color:var(--ink); outline:none;}
+  select:focus, input[type=text]:focus{border-color:var(--accent);}
+  #search{flex:1; min-width:150px;}
+  .stats{margin-left:auto; font-size:13px; color:var(--sub); white-space:nowrap;}
+  .stats b{color:var(--accent);}
+  .btn{border:none; border-radius:8px; padding:8px 16px; font-size:14px; cursor:pointer; font-weight:600;}
+  .btn-primary{background:var(--accent); color:#fff;}
+  .btn-primary:hover{background:#a93226;}
+  .btn-ghost{background:var(--card); border:1px solid var(--line); color:var(--ink);}
+  .btn-ghost:hover{border-color:var(--accent); color:var(--accent);}
+  .region{margin-top:22px;}
+  .region h2{font-size:17px; padding:8px 12px; border-left:4px solid var(--accent); background:var(--card); border-radius:0 8px 8px 0; display:flex; align-items:center; gap:10px;}
+  .region h2 .cnt{font-size:12px; color:var(--sub); font-weight:normal;}
+  .region h2 .pick{font-size:12px; color:var(--green); font-weight:600;}
+  .dish{display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:9px 12px; margin-top:8px; cursor:pointer; transition:all .15s;}
+  .dish:hover{border-color:var(--accent);}
+  .dish.checked{border-color:var(--green); background:var(--green-soft);}
+  .dish .box{width:20px; height:20px; border:2px solid var(--line); border-radius:5px; flex:none; display:flex; align-items:center; justify-content:center; font-size:13px; color:transparent; transition:all .15s;}
+  .dish.checked .box{background:var(--green); border-color:var(--green); color:#fff;}
+  .dish .name{font-size:15px; font-weight:600; flex:none;}
+  .dish .en{font-size:13px; color:var(--sub); flex:1; min-width:120px;}
+  .tags{display:flex; gap:6px; flex:none;}
+  .tag{font-size:11px; padding:2px 8px; border-radius:999px; background:#f0ede6; color:#6b645a;}
+  .tag.tang{background:#e8f0fb; color:#2c5f9e;}
+  .tag.chao{background:#fdf0e2; color:#b06a1c;}
+  .tag.dun{background:#f5e8f0; color:#8e4a72;}
+  .tag.zheng{background:#e6f4f0; color:#1d7a5f;}
+  .tag.zhushi{background:#f5efe0; color:#8a6d1f;}
+  .tag.tianpin{background:#fbe8ea; color:#b0404c;}
+  .tag.qita{background:#ece8f4; color:#5a4a8a;}
+  .tag.la0{background:#eef2ea; color:#5f7a3d;}
+  .tag.la1{background:#fff3d6; color:#c07f00;}
+  .tag.la2{background:#fde3dd; color:#c0392b;}
+  .tag.la3{background:#fbd7d0; color:#a61e0d;}
+  .tag.liangcai{background:#e4f4f7; color:#0f6d7a;}
+  .tag.benefit{background:#e9f7ef; color:#1d7a46; border:1px dashed #7cc49a;}
+  .tag.herbal{background:#f0eaf8; color:#6b3fa0;}
+  .addBtn{margin-left:auto; border:none; background:var(--green); color:#fff; border-radius:999px; padding:4px 14px; font-size:12px; cursor:pointer; font-weight:600; flex:none;}
+  .addBtn:hover{background:#1e9e54;}
+  .delBtn{border:none; background:none; color:#c0392b; font-size:16px; cursor:pointer; line-height:1; padding:0 2px; flex:none;}
+  .delBtn:hover{transform:scale(1.3);}
+  .modal-overlay{position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; align-items:center; justify-content:center; z-index:100; padding:16px;}
+  .modal-overlay.show{display:flex;}
+  .modal{background:#fff; border-radius:14px; padding:22px; width:min(92vw,430px); box-shadow:0 10px 40px rgba(0,0,0,.2); max-height:90vh; overflow-y:auto;}
+  .modal h3{font-size:17px; margin-bottom:4px;}
+  .modal .m-sub{font-size:12px; color:var(--sub); margin-bottom:6px;}
+  .modal label{display:block; font-size:13px; color:var(--sub); margin:10px 0 4px;}
+  .modal input[type=text], .modal select{width:100%; padding:8px 10px; font-size:14px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); outline:none;}
+  .modal input[type=text]:focus, .modal select:focus{border-color:var(--accent);}
+  .modal .row2{display:flex; gap:10px;}
+  .modal .row2 > div{flex:1;}
+  .m-actions{display:flex; gap:10px; justify-content:flex-end; margin-top:20px;}
+  .m-actions .btn{padding:8px 18px;}
+  .empty{text-align:center; color:var(--sub); padding:40px 0;}
+  .output-area{margin-top:20px; display:none;}
+  .output-area.show{display:block;}
+  .output-area textarea{width:100%; height:200px; border:1px solid var(--line); border-radius:10px; padding:12px; font-size:13px; font-family:Consolas,monospace; background:var(--card); color:var(--ink); resize:vertical;}
+  .hint{font-size:12px; color:var(--sub); margin-top:6px;}
+  .banner{background:var(--accent-soft); border:1px solid #f0c9c2; border-radius:10px; padding:10px 14px; font-size:13px; color:#7a2e22; margin-top:18px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>家庭菜谱 · 菜品选择清单<span class="dot">。</span></h1>
+    <p>共 <b id="totalCnt">0</b> 道家常菜 · 按地区/菜系分类 · 勾选你想要的，点「复制选中清单」发回给我即可</p>
+  </header>
+
+  <div class="toolbar">
+    <div class="row">
+      <button class="pill active" data-region="all">全部</button>
+      <button class="pill" data-region="jiangzhe">江浙沪通用</button>
+      <button class="pill" data-region="shanghai">上海菜</button>
+      <button class="pill" data-region="mindong">闽东菜(古田)</button>
+      <button class="pill" data-region="minnan">闽南菜</button>
+      <button class="pill" data-region="guangdong">广东菜</button>
+      <button class="pill" data-region="hot">🔥网红热门</button>
+      <button class="pill" data-region="restaurant">🏮饭店招牌</button>
+      <button class="pill" data-region="soup">🥣滋补汤羹</button>
+    </div>
+    <div class="row">
+      <select id="typeFilter">
+        <option value="all">全部分类</option>
+        <option value="炒菜">炒菜</option>
+        <option value="炖菜">炖菜</option>
+        <option value="蒸菜">蒸菜</option>
+        <option value="汤">汤</option>
+        <option value="主食">主食</option>
+        <option value="甜品">甜品</option>
+        <option value="烤菜">烤菜</option>
+        <option value="凉菜">凉菜</option>
+        <option value="其他">其他</option>
+      </select>
+      <select id="spicyFilter">
+        <option value="all">全部辣度</option>
+        <option value="不辣">不辣</option>
+        <option value="微辣">微辣</option>
+        <option value="中辣">中辣</option>
+        <option value="重辣">重辣</option>
+      </select>
+      <input type="text" id="search" placeholder="🔍 搜索菜名 / 拼音 / 英文…">
+      <span class="stats">已选 <b id="pickCount">0</b> / <b id="totalCnt2">0</b></span>
+    </div>
+    <div class="row">
+      <button class="btn btn-primary" id="copyBtn">📋 复制选中清单</button>
+      <button class="btn btn-ghost" id="clearBtn">清空选择</button>
+      <button class="btn btn-ghost" id="selectAllBtn">全选当前筛选</button>
+    </div>
+  </div>
+
+  <div class="banner" id="banner">
+    💡 <b>用法</b>：按地区点开筛选 → 勾选你吃过或想吃的菜 → 最后点「复制选中清单」，把复制的文本直接发给我。
+    如果你家里已经有拿手菜谱，也可以直接在回复里补充菜名，我一起收进去。
+  </div>
+
+  <div id="list"></div>
+
+  <div class="output-area" id="outputArea">
+    <textarea id="outputText" readonly></textarea>
+    <p class="hint">已复制到剪贴板（如未自动复制，可手动全选复制）。把这份清单直接发给我即可。</p>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3>＋ 新增一道菜</h3>
+    <p class="m-sub">会保存到你的浏览器里，下次打开还在；也可以随时删除。</p>
+    <label>中文菜名 *</label>
+    <input type="text" id="mCn" placeholder="例如：红烧狮子头">
+    <label>英文菜名（给阿姨看的，尽量填）</label>
+    <input type="text" id="mEn" placeholder="例如：Braised Pork Meatballs（不填会先留空，之后可补）">
+    <div class="row2">
+      <div>
+        <label>分类</label>
+        <select id="mType">
+          <option>炒菜</option><option>炖菜</option><option>蒸菜</option>
+          <option>汤</option><option>主食</option><option>甜品</option>
+          <option>烤菜</option><option>凉菜</option><option>其他</option>
+        </select>
+      </div>
+      <div>
+        <label>辣度</label>
+        <select id="mSpicy">
+          <option>不辣</option><option>微辣</option><option>中辣</option><option>重辣</option>
+        </select>
+      </div>
+    </div>
+    <label>功效（补汤类填，如「孩子长高·健脾益气」「润肺止咳」，没有可留空）</label>
+    <input type="text" id="mBenefit" placeholder="例如：润肺止咳">
+    <div class="m-actions">
+      <button class="btn btn-ghost" id="mCancel">取消</button>
+      <button class="btn btn-primary" id="mSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const REGION_META = {
+  jiangzhe:{name:"江浙沪通用家常菜", note:"50道 · 各家常家庭都吃"},
+  shanghai:{name:"上海菜", note:"25道 · 浓油赤酱"},
+  mindong:{name:"闽东菜（含福建古田）", note:"25道 · 红糟/芋类/银耳"},
+  minnan:{name:"闽南菜", note:"25道 · 海鲜/汤粥"},
+  guangdong:{name:"广东菜", note:"25道 · 清淡鲜甜"},
+  hot:{name:"网红热门菜", note:"全网爆款 · 这些年很火的"},
+  restaurant:{name:"饭店招牌菜", note:"馆子里叫得出名的"},
+  soup:{name:"滋补汤羹", note:"家常药膳 · 每道标注功效"},
+};
+
+const DISHES = [
+// ===== 江浙沪通用 50 =====
+{cn:"番茄炒蛋", en:"Stir-fried Tomato and Egg", type:"炒菜", spicy:"不辣", region:"jiangzhe"},
+{cn:"青椒土豆丝", en:"Shredded Potato with Green Pepper", type:"炒菜", spicy:"微辣", region:"jiangzhe"},
+{cn:"蒜蓉西兰花", en:"Garlic Broccoli", type:"炒菜", spicy:"不辣", region:"jiangzhe"},
+{cn:"清炒时蔬", en:"Stir-fried Seasonal Greens", type:"炒菜", spicy:"不辣", region:"jiangzhe"},
+{cn:"红烧茄子", en:"Braised Eggplant", type:"炒菜", spicy:"不辣", region:"jiangzhe"},
+{cn:"油焖笋", en:"Braised Spring Bamboo Shoots", type:"炒菜", spicy:"不辣", region:"jiangzhe"},
+{cn:"雪菜肉丝", en:"Shredded Pork with Snow Mustard Greens", type:"炒菜", spicy:"不辣", region:"jiangzhe"},
+{cn:"香菇青菜", en:"Bok Choy with Shiitake Mushrooms", type:"炒菜", spicy:"不辣", region:"jiangzhe"},
+{cn:"葱花炒蛋", en:"Scallion and Egg Stir-fry", type:"炒菜", spicy:"不辣", region:"jiangzhe"},
+{cn:"韭菜炒蛋", en:"Chives and Egg Stir-fry", type:"炒菜", spicy:"不辣", region:"jiangzhe"},
+{cn:"红烧鸡块", en:"Braised Chicken Pieces", type:"炒菜", spicy:"不辣", region:"jiangzhe"},
+{cn:"青椒肉丝", en:"Shredded Pork with Green Pepper", type:"炒菜", spicy:"微辣", region:"jiangzhe"},
+{cn:"木须肉", en:"Moo Shu Pork", type:"炒菜", spicy:"不辣", region:"jiangzhe"},
+{cn:"肉末豆腐", en:"Minced Pork with Tofu", type:"炒菜", spicy:"不辣", region:"jiangzhe"},
+{cn:"虾仁豆腐", en:"Shrimp and Tofu", type:"炒菜", spicy:"不辣", region:"jiangzhe"},
+{cn:"清炒虾仁", en:"Stir-fried Shrimp", type:"炒菜", spicy:"不辣", region:"jiangzhe"},
+{cn:"蚝油生菜", en:"Lettuce with Oyster Sauce", type:"炒菜", spicy:"不辣", region:"jiangzhe"},
+{cn:"醋熘白菜", en:"Sweet and Sour Cabbage", type:"炒菜", spicy:"不辣", region:"jiangzhe"},
+{cn:"红烧带鱼", en:"Braised Ribbonfish", type:"炒菜", spicy:"不辣", region:"jiangzhe"},
+{cn:"鱼香茄子", en:"Eggplant in Garlic Sauce", type:"炒菜", spicy:"微辣", region:"jiangzhe"},
+{cn:"宫保鸡丁", en:"Kung Pao Chicken", type:"炒菜", spicy:"中辣", region:"jiangzhe"},
+{cn:"干煸四季豆", en:"Dry-fried Green Beans", type:"炒菜", spicy:"微辣", region:"jiangzhe"},
+{cn:"红烧肉", en:"Braised Pork Belly", type:"炖菜", spicy:"不辣", region:"jiangzhe"},
+{cn:"糖醋排骨", en:"Sweet and Sour Spare Ribs", type:"炖菜", spicy:"不辣", region:"jiangzhe"},
+{cn:"土豆炖牛肉", en:"Beef and Potato Stew", type:"炖菜", spicy:"不辣", region:"jiangzhe"},
+{cn:"番茄牛腩", en:"Tomato Beef Brisket", type:"炖菜", spicy:"不辣", region:"jiangzhe"},
+{cn:"萝卜炖牛腩", en:"Daikon and Beef Brisket Stew", type:"炖菜", spicy:"不辣", region:"jiangzhe"},
+{cn:"红烧鸡翅", en:"Braised Chicken Wings", type:"炖菜", spicy:"不辣", region:"jiangzhe"},
+{cn:"糖醋鱼", en:"Sweet and Sour Fish", type:"炖菜", spicy:"不辣", region:"jiangzhe"},
+{cn:"葱烤鲫鱼", en:"Scallion-braised Crucian Carp", type:"炖菜", spicy:"不辣", region:"jiangzhe"},
+{cn:"清蒸鲈鱼", en:"Steamed Sea Bass", type:"蒸菜", spicy:"不辣", region:"jiangzhe"},
+{cn:"蒸蛋羹", en:"Steamed Egg Custard", type:"蒸菜", spicy:"不辣", region:"jiangzhe"},
+{cn:"白切鸡", en:"Poached Chicken", type:"蒸菜", spicy:"不辣", region:"jiangzhe"},
+{cn:"酿豆腐", en:"Stuffed Tofu", type:"蒸菜", spicy:"不辣", region:"jiangzhe"},
+{cn:"咸蛋黄豆腐", en:"Tofu with Salted Egg Yolk", type:"蒸菜", spicy:"不辣", region:"jiangzhe"},
+{cn:"番茄蛋花汤", en:"Tomato Egg Drop Soup", type:"汤", spicy:"不辣", region:"jiangzhe"},
+{cn:"紫菜蛋花汤", en:"Seaweed Egg Drop Soup", type:"汤", spicy:"不辣", region:"jiangzhe"},
+{cn:"冬瓜排骨汤", en:"Winter Melon and Pork Rib Soup", type:"汤", spicy:"不辣", region:"jiangzhe"},
+{cn:"菠菜豆腐汤", en:"Spinach and Tofu Soup", type:"汤", spicy:"不辣", region:"jiangzhe"},
+{cn:"海带排骨汤", en:"Kelp and Pork Rib Soup", type:"汤", spicy:"不辣", region:"jiangzhe"},
+{cn:"莲藕排骨汤", en:"Lotus Root and Pork Rib Soup", type:"汤", spicy:"不辣", region:"jiangzhe"},
+{cn:"山药排骨汤", en:"Yam and Pork Rib Soup", type:"汤", spicy:"不辣", region:"jiangzhe"},
+{cn:"三鲜汤", en:"Three Delicacies Soup", type:"汤", spicy:"不辣", region:"jiangzhe"},
+{cn:"青菜豆腐汤", en:"Greens and Tofu Soup", type:"汤", spicy:"不辣", region:"jiangzhe"},
+{cn:"银耳红枣汤", en:"Snow Fungus and Red Date Soup", type:"汤", spicy:"不辣", region:"jiangzhe"},
+{cn:"葱油拌面", en:"Scallion Oil Noodles", type:"主食", spicy:"不辣", region:"jiangzhe"},
+{cn:"番茄鸡蛋面", en:"Tomato and Egg Noodles", type:"主食", spicy:"不辣", region:"jiangzhe"},
+{cn:"馄饨", en:"Wonton Soup", type:"主食", spicy:"不辣", region:"jiangzhe"},
+{cn:"桂花糖藕", en:"Osmanthus Stuffed Lotus Root", type:"甜品", spicy:"不辣", region:"jiangzhe"},
+{cn:"卤蛋", en:"Braised Eggs", type:"其他", spicy:"不辣", region:"jiangzhe"},
+
+// ===== 上海菜 25 =====
+{cn:"上海红烧肉", en:"Shanghai Braised Pork Belly", type:"炖菜", spicy:"不辣", region:"shanghai"},
+{cn:"糖醋小排", en:"Sweet and Sour Baby Ribs", type:"炖菜", spicy:"不辣", region:"shanghai"},
+{cn:"油爆虾", en:"Deep-fried River Shrimp", type:"炒菜", spicy:"不辣", region:"shanghai"},
+{cn:"响油鳝糊", en:"Sizzling Eel Paste", type:"炒菜", spicy:"不辣", region:"shanghai"},
+{cn:"八宝辣酱", en:"Eight Treasure Spicy Sauce", type:"炒菜", spicy:"中辣", region:"shanghai"},
+{cn:"四喜烤麸", en:"Four Joy Braised Wheat Gluten", type:"炒菜", spicy:"不辣", region:"shanghai"},
+{cn:"蟹粉豆腐", en:"Crab Roe Tofu", type:"炒菜", spicy:"不辣", region:"shanghai"},
+{cn:"酒香草头", en:"Drunken Clover", type:"炒菜", spicy:"不辣", region:"shanghai"},
+{cn:"咸菜毛豆", en:"Salted Greens with Edamame", type:"炒菜", spicy:"不辣", region:"shanghai"},
+{cn:"清炒河虾仁", en:"Stir-fried River Shrimp", type:"炒菜", spicy:"不辣", region:"shanghai"},
+{cn:"蟹粉狮子头", en:"Crab Roe Meatballs", type:"炖菜", spicy:"不辣", region:"shanghai"},
+{cn:"草头圈子", en:"Clover with Pork Intestine", type:"炒菜", spicy:"不辣", region:"shanghai"},
+{cn:"糟钵头", en:"Wine Dregs Stew", type:"炖菜", spicy:"不辣", region:"shanghai"},
+{cn:"咸肉菜饭", en:"Salted Pork and Vegetable Rice", type:"主食", spicy:"不辣", region:"shanghai"},
+{cn:"排骨年糕", en:"Pork Chops with Rice Cakes", type:"主食", spicy:"不辣", region:"shanghai"},
+{cn:"生煎包", en:"Pan-fried Pork Buns", type:"主食", spicy:"不辣", region:"shanghai"},
+{cn:"锅贴", en:"Potstickers", type:"主食", spicy:"不辣", region:"shanghai"},
+{cn:"上海炒面", en:"Shanghai Stir-fried Noodles", type:"主食", spicy:"不辣", region:"shanghai"},
+{cn:"小笼包", en:"Soup Dumplings", type:"主食", spicy:"不辣", region:"shanghai"},
+{cn:"八宝饭", en:"Eight Treasure Rice", type:"甜品", spicy:"不辣", region:"shanghai"},
+{cn:"桂花拉糕", en:"Osmanthus Rice Cake", type:"甜品", spicy:"不辣", region:"shanghai"},
+{cn:"桂花糖芋艿", en:"Osmanthus Taro", type:"甜品", spicy:"不辣", region:"shanghai"},
+{cn:"上海素鸭", en:"Vegetarian Duck", type:"炒菜", spicy:"不辣", region:"shanghai"},
+{cn:"白斩鸡", en:"Shanghai Poached Chicken", type:"蒸菜", spicy:"不辣", region:"shanghai"},
+{cn:"腌笃鲜", en:"Salted and Fresh Pork Bamboo Soup", type:"汤", spicy:"不辣", region:"shanghai"},
+
+// ===== 闽东菜（含古田）25 =====
+{cn:"古田线面", en:"Gutian Thread Noodles", type:"主食", spicy:"不辣", region:"mindong"},
+{cn:"古田盒面", en:"Gutian Box Noodles", type:"主食", spicy:"不辣", region:"mindong"},
+{cn:"泥鳅粉干", en:"Loach Rice Noodles", type:"主食", spicy:"不辣", region:"mindong"},
+{cn:"芋头面", en:"Taro Noodles", type:"主食", spicy:"不辣", region:"mindong"},
+{cn:"红糟鸡", en:"Red Yeast Rice Chicken", type:"炖菜", spicy:"不辣", region:"mindong"},
+{cn:"红糟肉", en:"Red Yeast Rice Pork", type:"炒菜", spicy:"不辣", region:"mindong"},
+{cn:"红曲酒炖鸡", en:"Red Yeast Wine Stewed Chicken", type:"炖菜", spicy:"不辣", region:"mindong"},
+{cn:"太极芋泥", en:"Tai Chi Taro Paste", type:"甜品", spicy:"不辣", region:"mindong"},
+{cn:"古田银耳羹", en:"Gutian Snow Fungus Soup", type:"汤", spicy:"不辣", region:"mindong"},
+{cn:"青草冻", en:"Herbal Grass Jelly", type:"甜品", spicy:"不辣", region:"mindong"},
+{cn:"拗九粥", en:"Aojiu Sweet Porridge", type:"甜品", spicy:"不辣", region:"mindong"},
+{cn:"鼎边糊", en:"Rice Paste Soup", type:"汤", spicy:"不辣", region:"mindong"},
+{cn:"荔枝肉", en:"Lychee Pork", type:"炒菜", spicy:"不辣", region:"mindong"},
+{cn:"醉排骨", en:"Drunken Ribs", type:"炒菜", spicy:"不辣", region:"mindong"},
+{cn:"福鼎肉片", en:"Fuding Meat Slices", type:"汤", spicy:"不辣", region:"mindong"},
+{cn:"肉燕", en:"Pork-wrapper Wontons", type:"汤", spicy:"不辣", region:"mindong"},
+{cn:"鱼丸汤", en:"Fish Ball Soup", type:"汤", spicy:"不辣", region:"mindong"},
+{cn:"太平燕", en:"Peace Wonton Soup", type:"汤", spicy:"不辣", region:"mindong"},
+{cn:"红糟鱼片", en:"Red Yeast Rice Fish Slices", type:"炒菜", spicy:"不辣", region:"mindong"},
+{cn:"南煎肝", en:"Pan-fried Pork Liver", type:"炒菜", spicy:"不辣", region:"mindong"},
+{cn:"扁肉", en:"Flat Wontons", type:"汤", spicy:"不辣", region:"mindong"},
+{cn:"蛎饼", en:"Oyster Cake", type:"主食", spicy:"不辣", region:"mindong"},
+{cn:"光饼", en:"Guang Bing Bread", type:"主食", spicy:"不辣", region:"mindong"},
+{cn:"淡糟香螺片", en:"Light Wine-lees Conch", type:"炒菜", spicy:"不辣", region:"mindong"},
+{cn:"佛跳墙(家常版)", en:"Family Buddha Jumps Over the Wall", type:"炖菜", spicy:"不辣", region:"mindong"},
+
+// ===== 闽南菜 25 =====
+{cn:"沙茶面", en:"Shacha Noodles", type:"主食", spicy:"微辣", region:"minnan"},
+{cn:"海蛎煎", en:"Oyster Omelet", type:"炒菜", spicy:"不辣", region:"minnan"},
+{cn:"姜母鸭", en:"Ginger Duck", type:"炖菜", spicy:"不辣", region:"minnan"},
+{cn:"同安封肉", en:"Tongan Braised Pork", type:"炖菜", spicy:"不辣", region:"minnan"},
+{cn:"烧肉粽", en:"Savory Meat Zongzi", type:"主食", spicy:"不辣", region:"minnan"},
+{cn:"面线糊", en:"Thin Noodle Paste", type:"主食", spicy:"不辣", region:"minnan"},
+{cn:"五香卷", en:"Five-spice Pork Roll", type:"其他", spicy:"不辣", region:"minnan"},
+{cn:"沙茶烫鱿鱼", en:"Shacha Squid", type:"炒菜", spicy:"微辣", region:"minnan"},
+{cn:"闽南卤面", en:"Minnan Braised Noodles", type:"主食", spicy:"不辣", region:"minnan"},
+{cn:"润饼", en:"Popiah Spring Roll", type:"主食", spicy:"不辣", region:"minnan"},
+{cn:"芋包", en:"Taro Bun", type:"主食", spicy:"不辣", region:"minnan"},
+{cn:"醋肉", en:"Vinegar Pork", type:"炒菜", spicy:"不辣", region:"minnan"},
+{cn:"洪濑鸡爪", en:"Hongla Chicken Feet", type:"其他", spicy:"不辣", region:"minnan"},
+{cn:"厦门炒面线", en:"Xiamen Fried Thin Noodles", type:"主食", spicy:"不辣", region:"minnan"},
+{cn:"闽南炒米粉", en:"Minnan Fried Rice Noodles", type:"主食", spicy:"不辣", region:"minnan"},
+{cn:"番鸭汤", en:"Muscovy Duck Soup", type:"汤", spicy:"不辣", region:"minnan"},
+{cn:"四神汤", en:"Four Herbs Soup", type:"汤", spicy:"不辣", region:"minnan"},
+{cn:"闽南咸饭", en:"Minnan Savory Rice", type:"主食", spicy:"不辣", region:"minnan"},
+{cn:"萝卜饭", en:"Radish Rice", type:"主食", spicy:"不辣", region:"minnan"},
+{cn:"芋头咸饭", en:"Taro Savory Rice", type:"主食", spicy:"不辣", region:"minnan"},
+{cn:"鸭肉粥", en:"Duck Porridge", type:"主食", spicy:"不辣", region:"minnan"},
+{cn:"烧仙草", en:"Grass Jelly Dessert", type:"甜品", spicy:"不辣", region:"minnan"},
+{cn:"花生汤", en:"Peanut Soup", type:"甜品", spicy:"不辣", region:"minnan"},
+{cn:"石花膏", en:"Stone Flower Jelly", type:"甜品", spicy:"不辣", region:"minnan"},
+{cn:"同安煎蟹", en:"Tongan Pan-fried Crab", type:"炒菜", spicy:"不辣", region:"minnan"},
+
+// ===== 广东菜 25 =====
+{cn:"白切鸡", en:"Cantonese Poached Chicken", type:"蒸菜", spicy:"不辣", region:"guangdong"},
+{cn:"蜜汁叉烧", en:"Honey Char Siu", type:"烤菜", spicy:"不辣", region:"guangdong"},
+{cn:"豉油皇蒸鱼", en:"Steamed Fish with Soy Sauce", type:"蒸菜", spicy:"不辣", region:"guangdong"},
+{cn:"豉汁蒸排骨", en:"Steamed Spareribs with Black Bean Sauce", type:"蒸菜", spicy:"不辣", region:"guangdong"},
+{cn:"干炒牛河", en:"Dry-fried Rice Noodles with Beef", type:"主食", spicy:"不辣", region:"guangdong"},
+{cn:"豉油皇炒面", en:"Soy Sauce Fried Noodles", type:"主食", spicy:"不辣", region:"guangdong"},
+{cn:"蒸水蛋", en:"Steamed Water Egg", type:"蒸菜", spicy:"不辣", region:"guangdong"},
+{cn:"番茄牛肉", en:"Tomato Beef", type:"炒菜", spicy:"不辣", region:"guangdong"},
+{cn:"滑蛋虾仁", en:"Shrimp with Scrambled Eggs", type:"炒菜", spicy:"不辣", region:"guangdong"},
+{cn:"蚝油牛肉", en:"Oyster Sauce Beef", type:"炒菜", spicy:"不辣", region:"guangdong"},
+{cn:"菜远炒牛肉", en:"Beef with Choy Sum", type:"炒菜", spicy:"不辣", region:"guangdong"},
+{cn:"罗汉斋", en:"Buddha's Delight", type:"炒菜", spicy:"不辣", region:"guangdong"},
+{cn:"白灼虾", en:"Poached Shrimp", type:"蒸菜", spicy:"不辣", region:"guangdong"},
+{cn:"豉汁炒花甲", en:"Clams with Black Bean Sauce", type:"炒菜", spicy:"不辣", region:"guangdong"},
+{cn:"腐乳空心菜", en:"Water Spinach with Fermented Tofu", type:"炒菜", spicy:"不辣", region:"guangdong"},
+{cn:"蒜蓉炒菜心", en:"Garlic Choy Sum", type:"炒菜", spicy:"不辣", region:"guangdong"},
+{cn:"咸鱼鸡粒炒饭", en:"Salted Fish and Chicken Fried Rice", type:"主食", spicy:"不辣", region:"guangdong"},
+{cn:"皮蛋瘦肉粥", en:"Century Egg and Pork Porridge", type:"主食", spicy:"不辣", region:"guangdong"},
+{cn:"鲜虾云吞面", en:"Shrimp Wonton Noodles", type:"主食", spicy:"不辣", region:"guangdong"},
+{cn:"虾饺", en:"Shrimp Dumplings", type:"主食", spicy:"不辣", region:"guangdong"},
+{cn:"肠粉", en:"Rice Noodle Rolls", type:"主食", spicy:"不辣", region:"guangdong"},
+{cn:"冬瓜煲", en:"Winter Melon Claypot", type:"炖菜", spicy:"不辣", region:"guangdong"},
+{cn:"木瓜鱼尾汤", en:"Papaya Fish Tail Soup", type:"汤", spicy:"不辣", region:"guangdong"},
+{cn:"芥菜咸蛋汤", en:"Mustard Greens and Salted Egg Soup", type:"汤", spicy:"不辣", region:"guangdong"},
+{cn:"梅菜扣肉", en:"Meicai Braised Pork", type:"炖菜", spicy:"不辣", region:"guangdong"},
+
+// ===== 网红热门菜 46 =====
+{cn:"酸菜鱼", en:"Pickled Cabbage Fish", type:"炖菜", spicy:"微辣", region:"hot"},
+{cn:"水煮鱼", en:"Boiled Fish in Chili Oil", type:"炖菜", spicy:"重辣", region:"hot"},
+{cn:"麻辣香锅", en:"Mala Dry Pot", type:"炒菜", spicy:"中辣", region:"hot"},
+{cn:"毛血旺", en:"Mao Xue Wang", type:"炖菜", spicy:"重辣", region:"hot"},
+{cn:"十三香小龙虾", en:"Thirteen-spice Crayfish", type:"炒菜", spicy:"中辣", region:"hot"},
+{cn:"蒜蓉小龙虾", en:"Garlic Crayfish", type:"炒菜", spicy:"不辣", region:"hot"},
+{cn:"黄焖鸡", en:"Braised Chicken (Huangmenji)", type:"炖菜", spicy:"微辣", region:"hot"},
+{cn:"新疆大盘鸡", en:"Xinjiang Big Plate Chicken", type:"炖菜", spicy:"中辣", region:"hot"},
+{cn:"烤鱼", en:"Grilled Fish", type:"烤菜", spicy:"中辣", region:"hot"},
+{cn:"辣子鸡", en:"Spicy Diced Chicken", type:"炒菜", spicy:"重辣", region:"hot"},
+{cn:"口水鸡", en:"Saliva Chicken", type:"凉菜", spicy:"中辣", region:"hot"},
+{cn:"酸辣粉", en:"Hot and Sour Sweet Potato Noodles", type:"主食", spicy:"中辣", region:"hot"},
+{cn:"螺蛳粉", en:"Luosifen (Snail Rice Noodles)", type:"主食", spicy:"中辣", region:"hot"},
+{cn:"过桥米线", en:"Crossing-the-bridge Rice Noodles", type:"主食", spicy:"微辣", region:"hot"},
+{cn:"凉皮", en:"Cold Skin Noodles", type:"主食", spicy:"微辣", region:"hot"},
+{cn:"肉夹馍", en:"Roujiamo (Chinese Hamburger)", type:"主食", spicy:"不辣", region:"hot"},
+{cn:"煎饼果子", en:"Jianbing Crepe", type:"主食", spicy:"不辣", region:"hot"},
+{cn:"新疆羊肉串", en:"Xinjiang Lamb Skewers", type:"烤菜", spicy:"中辣", region:"hot"},
+{cn:"麻辣烫", en:"Malatang (Spicy Skewer Pot)", type:"炖菜", spicy:"中辣", region:"hot"},
+{cn:"冒菜", en:"Maocai (Spicy Veggie Pot)", type:"炖菜", spicy:"中辣", region:"hot"},
+{cn:"钵钵鸡", en:"Bobo Chicken", type:"凉菜", spicy:"中辣", region:"hot"},
+{cn:"红油抄手", en:"Red-oil Wontons", type:"主食", spicy:"中辣", region:"hot"},
+{cn:"担担面", en:"Dan Dan Noodles", type:"主食", spicy:"中辣", region:"hot"},
+{cn:"重庆小面", en:"Chongqing Noodles", type:"主食", spicy:"中辣", region:"hot"},
+{cn:"沙县拌面", en:"Shaxian Mixed Noodles", type:"主食", spicy:"微辣", region:"hot"},
+{cn:"杨枝甘露", en:"Mango Pomelo Sago", type:"甜品", spicy:"不辣", region:"hot"},
+{cn:"双皮奶", en:"Double-skin Milk", type:"甜品", spicy:"不辣", region:"hot"},
+{cn:"芒果班戟", en:"Mango Pancake", type:"甜品", spicy:"不辣", region:"hot"},
+{cn:"芋圆糖水", en:"Taro Ball Dessert", type:"甜品", spicy:"不辣", region:"hot"},
+{cn:"葡式蛋挞", en:"Portuguese Egg Tart", type:"甜品", spicy:"不辣", region:"hot"},
+{cn:"煲仔饭", en:"Clay Pot Rice", type:"主食", spicy:"不辣", region:"hot"},
+{cn:"韭菜盒子", en:"Chive Boxes", type:"主食", spicy:"不辣", region:"hot"},
+{cn:"鸡蛋灌饼", en:"Egg-stuffed Pancake", type:"主食", spicy:"不辣", region:"hot"},
+{cn:"胡辣汤", en:"Spicy Pepper Soup", type:"汤", spicy:"中辣", region:"hot"},
+{cn:"干锅花菜", en:"Dry Pot Cauliflower", type:"炒菜", spicy:"微辣", region:"hot"},
+{cn:"铁板豆腐", en:"Sizzling Tofu", type:"炒菜", spicy:"微辣", region:"hot"},
+{cn:"剁椒鱼头", en:"Steamed Fish Head with Chopped Chili", type:"蒸菜", spicy:"重辣", region:"hot"},
+{cn:"蒜蓉粉丝蒸虾", en:"Steamed Shrimp with Garlic and Vermicelli", type:"蒸菜", spicy:"不辣", region:"hot"},
+{cn:"蒜蓉粉丝蒸扇贝", en:"Steamed Scallops with Garlic Vermicelli", type:"蒸菜", spicy:"不辣", region:"hot"},
+{cn:"避风塘炒虾", en:"Typhoon-shelter Fried Shrimp", type:"炒菜", spicy:"微辣", region:"hot"},
+{cn:"葱姜炒蟹", en:"Stir-fried Crab with Ginger and Scallion", type:"炒菜", spicy:"不辣", region:"hot"},
+{cn:"椒盐皮皮虾", en:"Salt and Pepper Mantis Shrimp", type:"炒菜", spicy:"微辣", region:"hot"},
+{cn:"花甲粉丝煲", en:"Clam Vermicelli Clay Pot", type:"炖菜", spicy:"微辣", region:"hot"},
+{cn:"烤茄子", en:"Grilled Eggplant", type:"烤菜", spicy:"微辣", region:"hot"},
+{cn:"芝士焗红薯", en:"Cheese-baked Sweet Potato", type:"烤菜", spicy:"不辣", region:"hot"},
+{cn:"芝士玉米烙", en:"Cheese Corn Cake", type:"烤菜", spicy:"不辣", region:"hot"},
+
+// ===== 饭店招牌菜 36 =====
+{cn:"锅包肉", en:"Guobaorou (Sweet and Sour Crispy Pork)", type:"炒菜", spicy:"不辣", region:"restaurant"},
+{cn:"京酱肉丝", en:"Shredded Pork in Beijing Sauce", type:"炒菜", spicy:"不辣", region:"restaurant"},
+{cn:"水煮肉片", en:"Boiled Pork Slices in Chili Oil", type:"炖菜", spicy:"重辣", region:"restaurant"},
+{cn:"回锅肉", en:"Twice-cooked Pork", type:"炒菜", spicy:"中辣", region:"restaurant"},
+{cn:"东坡肉", en:"Dongpo Braised Pork", type:"炖菜", spicy:"不辣", region:"restaurant"},
+{cn:"红烧狮子头", en:"Braised Pork Meatballs", type:"炖菜", spicy:"不辣", region:"restaurant"},
+{cn:"西湖醋鱼", en:"West Lake Fish in Vinegar Gravy", type:"炒菜", spicy:"不辣", region:"restaurant"},
+{cn:"龙井虾仁", en:"Longjing Tea Shrimp", type:"炒菜", spicy:"不辣", region:"restaurant"},
+{cn:"宋嫂鱼羹", en:"Sister Song's Fish Soup", type:"汤", spicy:"不辣", region:"restaurant"},
+{cn:"松鼠桂鱼", en:"Sweet and Sour Mandarin Fish", type:"炒菜", spicy:"不辣", region:"restaurant"},
+{cn:"叫花鸡", en:"Beggar's Chicken", type:"烤菜", spicy:"不辣", region:"restaurant"},
+{cn:"盐焗鸡", en:"Salt-baked Chicken", type:"烤菜", spicy:"不辣", region:"restaurant"},
+{cn:"客家酿豆腐", en:"Hakka Stuffed Tofu", type:"蒸菜", spicy:"不辣", region:"restaurant"},
+{cn:"三杯鸡", en:"Three-cup Chicken", type:"炖菜", spicy:"不辣", region:"restaurant"},
+{cn:"猪肚鸡", en:"Pork Stomach and Chicken Soup", type:"炖菜", spicy:"不辣", region:"restaurant"},
+{cn:"椰子鸡火锅", en:"Coconut Chicken Hot Pot", type:"炖菜", spicy:"不辣", region:"restaurant"},
+{cn:"潮汕牛肉丸汤", en:"Chaoshan Beef Ball Soup", type:"汤", spicy:"不辣", region:"restaurant"},
+{cn:"沙茶牛肉", en:"Satay Beef", type:"炒菜", spicy:"不辣", region:"restaurant"},
+{cn:"黑椒牛柳", en:"Black Pepper Beef Tenderloin", type:"炒菜", spicy:"微辣", region:"restaurant"},
+{cn:"铁板牛肉", en:"Sizzling Beef", type:"炒菜", spicy:"微辣", region:"restaurant"},
+{cn:"孜然羊肉", en:"Cumin Lamb", type:"炒菜", spicy:"中辣", region:"restaurant"},
+{cn:"葱爆羊肉", en:"Scallion-sauteed Lamb", type:"炒菜", spicy:"不辣", region:"restaurant"},
+{cn:"手抓羊肉", en:"Hand-grabbed Lamb", type:"炖菜", spicy:"不辣", region:"restaurant"},
+{cn:"东北乱炖", en:"Northeast Mixed Stew", type:"炖菜", spicy:"微辣", region:"restaurant"},
+{cn:"猪肉炖粉条", en:"Pork Stew with Vermicelli", type:"炖菜", spicy:"不辣", region:"restaurant"},
+{cn:"小鸡炖蘑菇", en:"Chicken Stew with Wild Mushrooms", type:"炖菜", spicy:"不辣", region:"restaurant"},
+{cn:"文思豆腐", en:"Wensi Tofu Soup", type:"汤", spicy:"不辣", region:"restaurant"},
+{cn:"大煮干丝", en:"Boiled Dried Tofu Shreds", type:"汤", spicy:"不辣", region:"restaurant"},
+{cn:"扬州炒饭", en:"Yangzhou Fried Rice", type:"主食", spicy:"不辣", region:"restaurant"},
+{cn:"无锡酱排骨", en:"Wuxi Sweet Spareribs", type:"炖菜", spicy:"不辣", region:"restaurant"},
+{cn:"南京盐水鸭", en:"Nanjing Salted Duck", type:"蒸菜", spicy:"不辣", region:"restaurant"},
+{cn:"北京烤鸭", en:"Peking Roast Duck", type:"烤菜", spicy:"不辣", region:"restaurant"},
+{cn:"香酥鸭", en:"Crispy Fried Duck", type:"烤菜", spicy:"不辣", region:"restaurant"},
+{cn:"上汤娃娃菜", en:"Baby Cabbage in Superior Broth", type:"炖菜", spicy:"不辣", region:"restaurant"},
+{cn:"醉虾", en:"Drunken Shrimp", type:"凉菜", spicy:"不辣", region:"restaurant"},
+{cn:"樟茶鸭", en:"Tea-smoked Duck", type:"烤菜", spicy:"不辣", region:"restaurant"},
+
+// ===== 滋补汤羹 53（含福建草本汤）=====
+// —— 福建草本汤 ——
+{cn:"石橄榄炖排骨", en:"Rock Olive & Pork Rib Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"清热润肺 · 化痰止咳", herbal:true},
+{cn:"牛奶根炖土鸡", en:"Milk Root & Chicken Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"健脾益气 · 补虚强身", herbal:true},
+{cn:"溪黄草炖排骨", en:"Xihuangcao & Pork Rib Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"清热利湿 · 护肝退黄", herbal:true},
+{cn:"山苍子根炖鸡汤", en:"Litsea Root & Chicken Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"祛风散寒 · 健胃消食", herbal:true},
+{cn:"白花蛇舌草炖瘦肉", en:"Hedyotis & Lean Pork Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"清热解毒 · 消肿散结", herbal:true},
+{cn:"五指毛桃炖鸡", en:"Figwort Root & Chicken Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"健脾补肺 · 益气祛湿", herbal:true},
+{cn:"金线莲炖排骨", en:"Jinxianlian & Pork Rib Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"清热凉血 · 除湿解毒", herbal:true},
+{cn:"崩大碗猪骨汤", en:"Gotu Kola & Pork Bone Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"清热利湿 · 解毒消肿", herbal:true},
+{cn:"艾草根炖老母鸡", en:"Mugwort Root & Hen Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"温经散寒 · 暖宫养胃", herbal:true},
+{cn:"苦斋菜炖猪肚", en:"Bitter Herb & Pork Stomach Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"清热解毒 · 养胃健脾", herbal:true},
+{cn:"草珊瑚炖老鸭", en:"Sarcandra & Duck Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"清热解毒 · 活血止痛", herbal:true},
+{cn:"乌根炖猪蹄", en:"Vaccinium Root & Trotter Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"祛风除湿 · 舒筋活络", herbal:true},
+{cn:"麦冬石斛炖瘦肉", en:"Ophiopogon & Dendrobium Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"滋阴润肺 · 生津止渴", herbal:true},
+{cn:"黄花菜炖排骨", en:"Daylily & Pork Rib Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"安神助眠 · 清热利尿", herbal:true},
+// —— 孩子长高 ——
+{cn:"太子参瘦肉汤", en:"Pseudostellaria & Lean Pork Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"孩子长高 · 健脾益气"},
+{cn:"淮山芡实排骨汤", en:"Huai Shan & Euryale Rib Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"孩子长高 · 健脾益肾"},
+{cn:"胡萝卜玉米排骨汤", en:"Carrot & Corn Rib Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"孩子长高 · 补充维生素"},
+{cn:"黄豆猪蹄汤", en:"Soybean & Pig Trotter Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"孩子长高 · 补钙补胶原"},
+{cn:"鲫鱼豆腐汤", en:"Crucian Carp & Tofu Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"孩子长高 · 助消化补蛋白"},
+{cn:"板栗鸡汤", en:"Chestnut & Chicken Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"孩子长高 · 健脾补肾"},
+// —— 助消化 ——
+{cn:"猴头菇鸡汤", en:"Lion's Mane Mushroom & Chicken Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"养胃助消化 · 增强免疫"},
+{cn:"山楂陈皮排骨汤", en:"Hawthorn & Tangerine Peel Rib Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"开胃助消化 · 解腻"},
+{cn:"山药莲子瘦肉汤", en:"Yam & Lotus Seed Lean Pork Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"健脾助消化 · 安神"},
+{cn:"冬瓜薏米排骨汤", en:"Winter Melon & Barley Rib Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"清热祛湿 · 助消化"},
+{cn:"佛手瓜排骨汤", en:"Chayote & Pork Rib Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"开胃助消化"},
+// —— 润肺止咳 ——
+{cn:"川贝炖雪梨", en:"Chuanbei & Pear Stew", type:"汤", spicy:"不辣", region:"soup", benefit:"润肺止咳"},
+{cn:"银耳莲子羹", en:"Snow Fungus & Lotus Seed Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"润肺安神"},
+{cn:"沙参玉竹老鸭汤", en:"Shashen & Yuzhu Duck Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"滋阴润肺"},
+{cn:"霸王花煲猪骨", en:"Pitaya Flower & Pork Bone Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"润肺止咳 · 清热"},
+{cn:"海底椰无花果汤", en:"Sea Coconut & Fig Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"润肺清热 · 止咳"},
+{cn:"百合莲子汤", en:"Lily & Lotus Seed Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"润肺安神 · 助眠"},
+{cn:"虫草花炖鸡汤", en:"Cordyceps Flower & Chicken Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"润肺 · 增强免疫"},
+{cn:"陈皮老鸭汤", en:"Tangerine Peel & Duck Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"润肺化痰 · 理气"},
+// —— 补气血 / 增强免疫 ——
+{cn:"当归黄芪乌鸡汤", en:"Danggui & Astragalus Black-bone Chicken Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"补气养血"},
+{cn:"党参红枣鸡汤", en:"Dangshen & Red Date Chicken Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"补气血 · 暖身"},
+{cn:"花旗参石斛乌鸡汤", en:"American Ginseng & Black-bone Chicken Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"滋阴补气 · 益胃生津"},
+{cn:"红枣桂圆鸡蛋汤", en:"Red Date & Longan Egg Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"补血养颜"},
+{cn:"枸杞猪肝汤", en:"Goji Berry & Pork Liver Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"补血明目"},
+{cn:"鹿茸菇排骨汤", en:"Deer Antler Mushroom & Rib Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"增强免疫"},
+{cn:"茶树菇老鸭汤", en:"Tea Tree Mushroom & Duck Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"滋阴清热 · 降火"},
+{cn:"香菇炖鸡汤", en:"Shiitake & Chicken Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"增强免疫 · 提鲜"},
+{cn:"竹荪鸡汤", en:"Bamboo Fungus & Chicken Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"增强免疫 · 滋补"},
+{cn:"黑豆排骨汤", en:"Black Bean & Pork Rib Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"补肾强身 · 乌发"},
+// —— 清热祛湿 / 消暑 ——
+{cn:"苦瓜黄豆排骨汤", en:"Bitter Melon & Soybean Rib Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"清热消暑 · 降火"},
+{cn:"绿豆百合汤", en:"Mung Bean & Lily Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"清热消暑 · 润肺"},
+{cn:"荷叶冬瓜老鸭汤", en:"Lotus Leaf & Winter Melon Duck Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"清热祛湿"},
+{cn:"赤小豆鲫鱼汤", en:"Red Bean & Crucian Carp Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"祛湿消肿"},
+{cn:"薏米芡实老鸭汤", en:"Barley & Euryale Duck Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"健脾祛湿"},
+{cn:"丝瓜蛋汤", en:"Luffa & Egg Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"清热润燥"},
+// —— 其他滋补 ——
+{cn:"花胶炖鸡汤", en:"Fish Maw & Chicken Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"美容养颜 · 补充胶原"},
+{cn:"鲍鱼鸡汤", en:"Abalone & Chicken Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"滋补强身"},
+{cn:"羊肉萝卜汤", en:"Lamb & Daikon Soup", type:"汤", spicy:"不辣", region:"soup", benefit:"温补暖身"},
+];
+
+const TYPE_CLASS = {"炒菜":"chao","炖菜":"dun","蒸菜":"zheng","汤":"tang","主食":"zhushi","甜品":"tianpin","烤菜":"qita","凉菜":"liangcai","其他":"qita"};
+const SPICY_CLASS = {"不辣":"la0","微辣":"la1","中辣":"la2","重辣":"la3"};
+
+let customDishes = [];
+try{ customDishes = JSON.parse(localStorage.getItem("familyRecipeCustomDishes")||"[]")||[]; }catch(e){}
+function saveCustom(){ try{ localStorage.setItem("familyRecipeCustomDishes", JSON.stringify(customDishes)); }catch(e){} }
+function allDishes(){ return DISHES.concat(customDishes); }
+
+let savedPicks = [];
+try{ savedPicks = JSON.parse(localStorage.getItem("familyRecipePicks")||"[]")||[]; }catch(e){}
+let state = {
+  region:"all", type:"all", spicy:"all", query:"",
+  picked:new Set(savedPicks)
+};
+function savePicks(){ try{ localStorage.setItem("familyRecipePicks", JSON.stringify([...state.picked])); }catch(e){} }
+
+const listEl = document.getElementById("list");
+const pickCountEl = document.getElementById("pickCount");
+const totalCntEl = document.getElementById("totalCnt");
+const totalCnt2El = document.getElementById("totalCnt2");
+
+function filterDishes(){
+  return allDishes().filter(d=>{
+    if(state.region!=="all" && d.region!==state.region) return false;
+    if(state.type!=="all" && d.type!==state.type) return false;
+    if(state.spicy!=="all" && d.spicy!==state.spicy) return false;
+    if(state.query){
+      const q = state.query.toLowerCase();
+      const hit = d.cn.toLowerCase().includes(q) || d.en.toLowerCase().includes(q);
+      if(!hit) return false;
+    }
+    return true;
+  });
+}
+
+function render(){
+  listEl.innerHTML = "";
+  const visible = filterDishes();
+  totalCntEl.textContent = allDishes().length;
+  totalCnt2El.textContent = allDishes().length;
+  if(visible.length===0){
+    listEl.innerHTML = '<div class="empty">没有符合条件的菜，试试调整筛选条件～</div>';
+    pickCountEl.textContent = state.picked.size;
+    return;
+  }
+  // group by region preserving order
+  const order = ["jiangzhe","shanghai","mindong","minnan","guangdong","hot","restaurant","soup"];
+  const groups = {};
+  visible.forEach(d=>{(groups[d.region]=groups[d.region]||[]).push(d);});
+  order.forEach(reg=>{
+    const arr = groups[reg];
+    if(!arr) return;
+    const pickedInGroup = arr.filter(d=>state.picked.has(d.cn)).length;
+    const sec = document.createElement("section");
+    sec.className = "region";
+    const h = document.createElement("h2");
+    h.innerHTML = `${REGION_META[reg].name} <span class="cnt">${REGION_META[reg].note}</span> <span class="pick">已选 ${pickedInGroup}/${arr.length}</span>`;
+    const addBtn = document.createElement("button");
+    addBtn.className = "addBtn";
+    addBtn.textContent = "＋ 新增菜";
+    addBtn.onclick = ()=>{ openModal(reg); };
+    h.appendChild(addBtn);
+    sec.appendChild(h);
+    arr.forEach(d=>{
+      const div = document.createElement("div");
+      div.className = "dish"+(state.picked.has(d.cn)?" checked":"");
+      let tags = `<span class="tag ${TYPE_CLASS[d.type]}">${d.type}</span>
+        <span class="tag ${SPICY_CLASS[d.spicy]}">${d.spicy}</span>`;
+      if(d.herbal) tags += `<span class="tag herbal">🌿 福建草本</span>`;
+      if(d.benefit) tags += `<span class="tag benefit">${d.benefit}</span>`;
+      let delBtn = "";
+      if(d.custom) delBtn = `<button class="delBtn" title="删除这道自定义菜">×</button>`;
+      div.innerHTML = `
+        <div class="box">✓</div>
+        <div class="name">${d.cn}</div>
+        <div class="en">${d.en||"(英文名待补)"}</div>
+        <div class="tags">${tags}</div>${delBtn}`;
+      div.onclick = ()=>{ toggle(d.cn); };
+      if(d.custom){
+        div.querySelector(".delBtn").onclick = (e)=>{
+          e.stopPropagation();
+          if(!confirm(`确定删除「${d.cn}」吗？`)) return;
+          customDishes = customDishes.filter(x=>x!==d);
+          saveCustom();
+          render();
+        };
+      }
+      sec.appendChild(div);
+    });
+    listEl.appendChild(sec);
+  });
+  pickCountEl.textContent = state.picked.size;
+}
+
+function toggle(cn){
+  if(state.picked.has(cn)) state.picked.delete(cn); else state.picked.add(cn);
+  savePicks();
+  render();
+}
+
+document.querySelectorAll(".pill").forEach(p=>{
+  p.onclick = ()=>{
+    document.querySelectorAll(".pill").forEach(x=>x.classList.remove("active"));
+    p.classList.add("active");
+    state.region = p.dataset.region;
+    render();
+  };
+});
+
+document.getElementById("typeFilter").onchange = e=>{ state.type=e.target.value; render(); };
+document.getElementById("spicyFilter").onchange = e=>{ state.spicy=e.target.value; render(); };
+document.getElementById("search").oninput = e=>{ state.query=e.target.value.trim(); render(); };
+
+document.getElementById("clearBtn").onclick = ()=>{ state.picked.clear(); savePicks(); render(); };
+
+document.getElementById("selectAllBtn").onclick = ()=>{
+  const visible = filterDishes();
+  visible.forEach(d=>state.picked.add(d.cn));
+  savePicks();
+  render();
+};
+
+document.getElementById("copyBtn").onclick = ()=>{
+  if(state.picked.size===0){ alert("你还没有勾选任何菜哦～"); return; }
+  const order = ["jiangzhe","shanghai","mindong","minnan","guangdong","hot","restaurant","soup"];
+  const lines = [];
+  lines.push(`我选好了 ${state.picked.size} 道菜，清单如下：`);
+  order.forEach(reg=>{
+    const arr = allDishes().filter(d=>d.region===reg && state.picked.has(d.cn));
+    if(!arr.length) return;
+    lines.push("");
+    lines.push(`【${REGION_META[reg].name}】`);
+    arr.forEach(d=>{
+      let extra = "";
+      if(d.herbal) extra += " · 福建草本";
+      if(d.benefit) extra += ` · 功效:${d.benefit}`;
+      if(d.custom) extra += " · 自定义";
+      lines.push(`  ${d.cn}（${d.en||"英文名待补"}）· ${d.type} · ${d.spicy}${extra}`);
+    });
+  });
+  const text = lines.join("\n");
+  const ta = document.getElementById("outputText");
+  ta.value = text;
+  document.getElementById("outputArea").classList.add("show");
+  ta.select();
+  try{ navigator.clipboard.writeText(text).catch(()=>{}); }catch(e){}
+  document.getElementById("outputArea").scrollIntoView({behavior:"smooth"});
+};
+
+// ===== 新增菜弹窗 =====
+let modalRegion = "jiangzhe";
+const overlay = document.getElementById("modalOverlay");
+
+function openModal(reg){
+  modalRegion = reg;
+  document.getElementById("mCn").value = "";
+  document.getElementById("mEn").value = "";
+  document.getElementById("mType").value = (reg==="soup") ? "汤" : "炒菜";
+  document.getElementById("mSpicy").value = "不辣";
+  document.getElementById("mBenefit").value = "";
+  overlay.classList.add("show");
+  document.getElementById("mCn").focus();
+}
+function closeModal(){ overlay.classList.remove("show"); }
+
+document.getElementById("mCancel").onclick = closeModal;
+overlay.onclick = (e)=>{ if(e.target===overlay) closeModal(); };
+
+document.getElementById("mSave").onclick = ()=>{
+  const cn = document.getElementById("mCn").value.trim();
+  const en = document.getElementById("mEn").value.trim();
+  const type = document.getElementById("mType").value;
+  const spicy = document.getElementById("mSpicy").value;
+  const benefit = document.getElementById("mBenefit").value.trim();
+  if(!cn){ alert("请先填中文菜名～"); return; }
+  const exists = allDishes().some(d=>d.cn===cn);
+  if(exists){ alert(`「${cn}」已经在清单里了，不用重复添加～`); return; }
+  const dish = {cn, en, type, spicy, region:modalRegion, benefit:benefit||undefined, custom:true};
+  if(modalRegion==="soup" && !benefit) dish.benefit = "自定义功效待补";
+  customDishes.push(dish);
+  saveCustom();
+  state.picked.add(cn);
+  savePicks();
+  state.region = modalRegion;
+  document.querySelectorAll(".pill").forEach(x=>x.classList.toggle("active", x.dataset.region===modalRegion));
+  closeModal();
+  render();
+  document.getElementById("list").scrollIntoView({behavior:"smooth"});
+};
+
+render();
+</script>
+</body>
+</html>
